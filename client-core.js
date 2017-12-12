@@ -2,10 +2,14 @@
 
 module.exports.execute = execute;
 module.exports.isStar = false;
+
 const request = require('request');
 const chalk = require('chalk');
+
 const red = chalk.hex('#f00');
 const green = chalk.hex('#0f0');
+// const gray = chalk.hex('#777');
+// const yellow = chalk.hex('#ff0');
 
 function execute() {
     const { from, to, text, command } = parseArgs();
@@ -22,14 +26,7 @@ function listRequest(from, to) {
     return new Promise((resolve, reject) => {
         request.get({ uri: url, qs: createDefinedQueryParams(from, to) })
             .on('response', res => {
-                let body = [];
-                res.on('data', function (chunk) {
-                    body.push(chunk);
-                });
-
-                res.on('end', function () {
-                    body = Buffer.concat(body).toString();
-                    let result = JSON.parse(body);
+                readResponse(res).then(result => {
                     result = result.map(messageToConsoleString);
                     resolve(result.join('\n\n'));
                 });
@@ -42,26 +39,31 @@ function sendRequest(message) {
     const { from, to, text } = message;
 
     return new Promise((resolve, reject) => {
-        let req = request
-            .post({ uri: 'http://localhost:8080/messages', qs: createDefinedQueryParams(from, to) })
+        request
+            .post({
+                uri: 'http://localhost:8080/messages',
+                qs: createDefinedQueryParams(from, to),
+                form: { text }
+            })
             .on('response', res => {
-                let body = [];
-                res.on('data', function (chunk) {
-                    body.push(chunk);
-                });
+                readResponse(res).then(result => resolve(messageToConsoleString(result)));
+            })
+            .on('error', reject);
+    });
+}
 
-                res.on('end', function () {
-                    body = Buffer.concat(body).toString();
-                    let result = JSON.parse(body);
-                    resolve(messageToConsoleString(result));
-                });
-            });
-        req.on('error', function (e) {
-            reject(e);
+function readResponse(initialResponse) {
+    return new Promise(resolve => {
+        let body = [];
+        initialResponse.on('data', function (chunk) {
+            body.push(chunk);
         });
 
-        req.write(JSON.stringify({ text }));
-        req.end();
+        initialResponse.on('end', function () {
+            body = Buffer.concat(body).toString();
+            let result = JSON.parse(body);
+            resolve(result);
+        });
     });
 }
 
