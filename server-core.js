@@ -24,10 +24,10 @@ function handlerGoodRequest(req, res) {
     const { method } = req;
     const { pathname, query } = url.parse(req.url, true);
     let result;
-    if (method === 'GET') {
+    if (method === 'GET' && pathname === '/messages') {
         result = getMessages(query.from, query.to);
         sendJsonResultWithMessage(res, result);
-    } else if (method === 'POST') {
+    } else if (method === 'POST' && pathname === '/messages') {
         readResponse(req).then(body => {
             result = putMessage({ text: body.text, from: query.from, to: query.to });
             sendJsonResultWithMessage(res, result);
@@ -44,6 +44,9 @@ function handlerGoodRequest(req, res) {
             result = editMessage(id, body.text);
             sendJsonResultWithMessage(res, result);
         });
+    } else {
+        res.statusCode = 404;
+        res.end();
     }
 }
 
