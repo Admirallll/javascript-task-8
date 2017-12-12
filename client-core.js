@@ -42,7 +42,11 @@ function deleteRequest(id) {
     return new Promise(resolve => {
         request.delete(rootUrl + `/${id}`)
             .on('response', res => {
-                readResponse(res).then(resolve);
+                readResponse(res).then(result => {
+                    if (result.status === 'ok') {
+                        resolve('DELETED');
+                    }
+                });
             });
     });
 }
