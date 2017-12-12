@@ -6,6 +6,8 @@ module.exports.isStar = false;
 const request = require('request');
 const chalk = require('chalk');
 
+const rootUrl = 'http://localhost:8080/messages';
+
 const red = chalk.hex('#f00');
 const green = chalk.hex('#0f0');
 // const gray = chalk.hex('#777');
@@ -21,34 +23,28 @@ function execute() {
 }
 
 function listRequest(from, to) {
-    const url = 'http://localhost:8080/messages';
-
-    return new Promise((resolve, reject) => {
-        request.get({ uri: url, qs: createDefinedQueryParams(from, to) })
+    return new Promise(resolve => {
+        request.get({ uri: rootUrl, qs: createDefinedQueryParams(from, to) })
             .on('response', res => {
                 readResponse(res).then(result => {
                     result = result.map(messageToConsoleString);
                     resolve(result.join('\n\n'));
                 });
-            })
-            .on('error', reject);
+            });
     });
 }
 
 function sendRequest(message) {
     const { from, to, text } = message;
 
-    return new Promise((resolve, reject) => {
-        request
-            .post({
-                uri: 'http://localhost:8080/messages',
-                qs: createDefinedQueryParams(from, to),
-                form: { text }
-            })
+    return new Promise(resolve => {
+        request.post({
+            uri: rootUrl,
+            qs: createDefinedQueryParams(from, to),
+            form: { text } })
             .on('response', res => {
                 readResponse(res).then(result => resolve(messageToConsoleString(result)));
-            })
-            .on('error', reject);
+            });
     });
 }
 
