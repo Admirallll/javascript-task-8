@@ -5,6 +5,7 @@ module.exports.isStar = true;
 
 const request = require('request');
 const chalk = require('chalk');
+const readResponse = require('./http-helper').readResponse;
 
 const rootUrl = 'http://localhost:8080/messages';
 
@@ -15,31 +16,37 @@ const yellow = chalk.hex('#ff0');
 
 function execute() {
     const { from, to, text, command, verbosity, id } = parseArgs();
-    if (command === 'list') {
-        return listRequest(from, to, verbosity);
-    } else if (command === 'send') {
-        return sendRequest({ from, to, text }, verbosity);
-    } else if (command === 'delete') {
-        return deleteRequest(id);
-    } else if (command === 'edit') {
-        return editRequest(id, text);
+    switch (command) {
+        case 'list':
+            return listRequest(from, to, verbosity);
+        case 'send':
+            return sendRequest({ from, to, text }, verbosity);
+        case 'delete':
+            return deleteRequest(id);
+        case 'edit':
+            return editRequest(id, text);
+        default:
+            throw new Error('Wrong command!');
     }
 }
 
 function listRequest(from, to, verbosity) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         request.get({ uri: rootUrl, qs: createDefinedQueryParams(from, to) })
             .on('response', res => {
                 readResponse(res).then(result => {
                     result = result.map(message => messageToConsoleString(message, verbosity));
                     resolve(result.join('\n\n'));
                 });
+            })
+            .on('error', () => {
+                reject(`${red('Произошла ошибка')}`);
             });
     });
 }
 
 function deleteRequest(id) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         request.delete(rootUrl + `/${id}`)
             .on('response', res => {
                 readResponse(res).then(result => {
@@ -47,17 +54,25 @@ function deleteRequest(id) {
                         resolve('DELETED');
                     }
                 });
+            })
+            .on('error', () => {
+                reject(`${red('Произошла ошибка')}`);
             });
     });
 }
 
 function editRequest(id, text) {
-    return new Promise(resolve => {
-        request.patch({ uri: rootUrl + `/${id}`, form: JSON.stringify({ text }) })
+    const options = { uri: rootUrl + `/${id}`, form: JSON.stringify({ text }) };
+
+    return new Promise((resolve, reject) => {
+        request.patch(options)
             .on('response', res => {
                 readResponse(res).then(result => {
                     resolve(messageToConsoleString(result));
                 });
+            })
+            .on('error', () => {
+                reject(`${red('Произошла ошибка')}`);
             });
     });
 }
@@ -65,31 +80,21 @@ function editRequest(id, text) {
 function sendRequest(message, verbosity) {
     const { from, to, text } = message;
 
-    return new Promise(resolve => {
-        request.post({
-            uri: rootUrl,
-            qs: createDefinedQueryParams(from, to),
-            form: JSON.stringify({ text }) })
+    return new Promise((resolve, reject) => {
+        request
+            .post({
+                uri: rootUrl,
+                qs: createDefinedQueryParams(from, to),
+                form: JSON.stringify({ text })
+            })
             .on('response', res => {
                 readResponse(res).then(
                     result => resolve(messageToConsoleString(result, verbosity))
                 );
+            })
+            .on('error', () => {
+                reject(`${red('Произошла ошибка')}`);
             });
-    });
-}
-
-function readResponse(initialResponse) {
-    return new Promise(resolve => {
-        let body = [];
-        initialResponse.on('data', function (chunk) {
-            body.push(chunk);
-        });
-
-        initialResponse.on('end', function () {
-            body = Buffer.concat(body).toString();
-            let result = JSON.parse(body);
-            resolve(result);
-        });
     });
 }
 
