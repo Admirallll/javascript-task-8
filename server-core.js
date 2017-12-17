@@ -2,7 +2,6 @@
 
 const http = require('http');
 const url = require('url');
-const md5 = require('md5');
 const readResponse = require('./http-helper').readResponse;
 
 const server = http.createServer();
@@ -82,7 +81,7 @@ function deleteMessage(id) {
 }
 
 function putMessage(message) {
-    let id = md5(totalMessages.toString());
+    let id = totalMessages.toString();
     message.id = id;
     messages[id] = message;
     totalMessages++;

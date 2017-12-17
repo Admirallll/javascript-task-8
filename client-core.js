@@ -34,10 +34,12 @@ function listRequest(from, to, verbosity) {
     return new Promise((resolve, reject) => {
         request.get({ uri: rootUrl, qs: createDefinedQueryParams(from, to) })
             .on('response', res => {
-                readResponse(res).then(result => {
-                    result = result.map(message => messageToConsoleString(message, verbosity));
-                    resolve(result.join('\n\n'));
-                });
+                readResponse(res)
+                    .then(result => {
+                        result = result.map(message => messageToConsoleString(message, verbosity));
+                        resolve(result.join('\n\n'));
+                    })
+                    .catch(reject);
             })
             .on('error', () => {
                 reject(`${red('Произошла ошибка')}`);
@@ -52,6 +54,8 @@ function deleteRequest(id) {
                 readResponse(res).then(result => {
                     if (result.status === 'ok') {
                         resolve('DELETED');
+                    } else {
+                        reject('Error on deliting');
                     }
                 });
             })
@@ -67,9 +71,11 @@ function editRequest(id, text) {
     return new Promise((resolve, reject) => {
         request.patch(options)
             .on('response', res => {
-                readResponse(res).then(result => {
-                    resolve(messageToConsoleString(result));
-                });
+                readResponse(res)
+                    .then(result => {
+                        resolve(messageToConsoleString(result));
+                    })
+                    .catch(reject);
             })
             .on('error', () => {
                 reject(`${red('Произошла ошибка')}`);
@@ -88,9 +94,11 @@ function sendRequest(message, verbosity) {
                 form: JSON.stringify({ text })
             })
             .on('response', res => {
-                readResponse(res).then(
-                    result => resolve(messageToConsoleString(result, verbosity))
-                );
+                readResponse(res)
+                    .then(
+                        result => resolve(messageToConsoleString(result, verbosity))
+                    )
+                    .catch(reject);
             })
             .on('error', () => {
                 reject(`${red('Произошла ошибка')}`);

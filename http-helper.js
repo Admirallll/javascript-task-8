@@ -3,7 +3,7 @@
 module.exports.readResponse = readResponse;
 
 function readResponse(initialResponse) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         let body = [];
         initialResponse.on('data', function (chunk) {
             body.push(chunk);
@@ -14,5 +14,7 @@ function readResponse(initialResponse) {
             let result = JSON.parse(body);
             resolve(result);
         });
+
+        initialResponse.on('error', reject);
     });
 }
